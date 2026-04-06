@@ -7,6 +7,8 @@ from hsp_order_service.config import get_settings
 from hsp_order_service.domain.models import SourceType
 from hsp_order_service.repository.in_memory import InMemoryEchoRepository
 from hsp_order_service.repository.mysql import SQLAlchemyEchoRepository
+from hsp_order_service.repository.order_in_memory import InMemoryOrderRepository
+from hsp_order_service.repository.order_mysql import SQLAlchemyOrderRepository
 
 
 @pytest.mark.asyncio
@@ -19,6 +21,7 @@ async def test_build_container_with_mock_repository(monkeypatch: pytest.MonkeyPa
     container = await build_container()
 
     assert isinstance(container.echo_repository, InMemoryEchoRepository)
+    assert isinstance(container.order_repository, InMemoryOrderRepository)
     assert container.engine is None
     assert container.session_factory is None
 
@@ -39,6 +42,7 @@ async def test_build_container_with_sqlalchemy_repository(
     container = await build_container()
 
     assert isinstance(container.echo_repository, SQLAlchemyEchoRepository)
+    assert isinstance(container.order_repository, SQLAlchemyOrderRepository)
     assert container.engine is not None
     assert container.session_factory is not None
 

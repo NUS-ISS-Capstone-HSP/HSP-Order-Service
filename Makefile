@@ -21,6 +21,7 @@ coverage:
 
 proto-gen:
 	$(PYTHON) -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. rpc/echo/v1/echo.proto
+	$(PYTHON) -m grpc_tools.protoc -I . --python_out=. --grpc_python_out=. rpc/order/v1/order.proto
 
 swagger:
 	$(PYTHON) -m scripts.generate_openapi

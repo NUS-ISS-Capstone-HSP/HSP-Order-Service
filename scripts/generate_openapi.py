@@ -2,14 +2,19 @@ import json
 from pathlib import Path
 
 from hsp_order_service.repository.in_memory import InMemoryEchoRepository
+from hsp_order_service.repository.order_in_memory import InMemoryOrderRepository
 from hsp_order_service.service.echo_service import EchoService
+from hsp_order_service.service.order_service import OrderService
 from hsp_order_service.transport.http.app import create_http_app
 
 OUTPUT_PATH = Path("docs/openapi.json")
 
 
 def main() -> None:
-    app = create_http_app(EchoService(InMemoryEchoRepository()))
+    app = create_http_app(
+        EchoService(InMemoryEchoRepository()),
+        OrderService(InMemoryOrderRepository()),
+    )
     schema = app.openapi()
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

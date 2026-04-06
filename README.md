@@ -17,10 +17,18 @@ HTTP:
 - `GET /healthz`
 - `POST /api/orders/v1/echo`
 - `GET /api/orders/v1/echo/{id}`
+- `POST /api/orders/v1/orders`
+- `GET /api/orders/v1/orders/{order_id}`
+- `GET /api/orders/v1/orders`
+- `PATCH /api/orders/v1/orders/{order_id}/status`
 
 gRPC:
 - `CreateEcho`
 - `GetEcho`
+- `CreateOrder`
+- `GetOrder`
+- `ListOrders`
+- `UpdateOrderStatus`
 - `Health`
 
 ## 本地开发

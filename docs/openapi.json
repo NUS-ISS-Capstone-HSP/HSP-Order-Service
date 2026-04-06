@@ -8,11 +8,11 @@
     "/api/orders/v1/echo": {
       "post": {
         "tags": [
-          "echo"
+          "orders"
         ],
         "summary": "Create echo record",
         "description": "Store an echo message and return the created record.",
-        "operationId": "create_echo_api_v1_echo_post",
+        "operationId": "create_echo_api_orders_v1_echo_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -46,11 +46,11 @@
     "/api/orders/v1/echo/{echo_id}": {
       "get": {
         "tags": [
-          "echo"
+          "orders"
         ],
         "summary": "Get echo record by id",
         "description": "Query a previously created echo record.",
-        "operationId": "get_echo_api_v1_echo__echo_id__get",
+        "operationId": "get_echo_api_orders_v1_echo__echo_id__get",
         "parameters": [
           {
             "name": "echo_id",
@@ -80,6 +80,265 @@
           },
           "404": {
             "description": "Echo record was not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/v1/orders": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Create order",
+        "description": "Create an order with structured fields.",
+        "operationId": "create_order_api_orders_v1_orders_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business validation failed."
+          },
+          "422": {
+            "description": "Request payload validation failed."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "List orders",
+        "description": "List orders with filters and pagination.",
+        "operationId": "list_orders_api_orders_v1_orders_get",
+        "parameters": [
+          {
+            "name": "customer_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Name"
+            }
+          },
+          {
+            "name": "service_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ServiceType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OrderStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOrdersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business validation failed."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/v1/orders/{order_id}": {
+      "get": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Get order by id",
+        "description": "Query one order by order id.",
+        "operationId": "get_order_api_orders_v1_orders__order_id__get",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Order id (UUID).",
+              "title": "Order Id"
+            },
+            "description": "Order id (UUID)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business validation failed."
+          },
+          "404": {
+            "description": "Order was not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/v1/orders/{order_id}/status": {
+      "patch": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Update order status",
+        "description": "Transit order status by finite state machine.",
+        "operationId": "update_order_status_api_orders_v1_orders__order_id__status_patch",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Order id (UUID).",
+              "title": "Order Id"
+            },
+            "description": "Order id (UUID)."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business validation failed."
+          },
+          "404": {
+            "description": "Order was not found."
+          },
+          "409": {
+            "description": "Illegal order status transition."
           },
           "422": {
             "description": "Validation Error",
@@ -141,6 +400,60 @@
           "message": "Hello from HTTP"
         }
       },
+      "CreateOrderRequest": {
+        "properties": {
+          "customer_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Customer Name"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^\\+?\\d{6,20}$",
+            "title": "Phone"
+          },
+          "service_address": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Service Address"
+          },
+          "service_type": {
+            "$ref": "#/components/schemas/ServiceType"
+          },
+          "appointment_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Appointment Time"
+          },
+          "estimated_duration_minutes": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Estimated Duration Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_name",
+          "phone",
+          "service_address",
+          "service_type",
+          "appointment_time",
+          "estimated_duration_minutes"
+        ],
+        "title": "CreateOrderRequest",
+        "example": {
+          "appointment_time": "2026-04-07T09:30:00+08:00",
+          "customer_name": "Alice Zhang",
+          "estimated_duration_minutes": 120,
+          "phone": "+8613812345678",
+          "service_address": "Shanghai Pudong XX Road 100",
+          "service_type": "cleaning"
+        }
+      },
       "EchoRecordResponse": {
         "properties": {
           "id": {
@@ -192,6 +505,177 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ListOrdersResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrderResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "ListOrdersResponse"
+      },
+      "OrderResponse": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "customer_name": {
+            "type": "string",
+            "title": "Customer Name"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone"
+          },
+          "service_address": {
+            "type": "string",
+            "title": "Service Address"
+          },
+          "service_type": {
+            "type": "string",
+            "title": "Service Type"
+          },
+          "appointment_time": {
+            "type": "string",
+            "title": "Appointment Time"
+          },
+          "estimated_duration_minutes": {
+            "type": "integer",
+            "title": "Estimated Duration Minutes"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "assigned_worker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Worker Id"
+          },
+          "status_updated_at": {
+            "type": "string",
+            "title": "Status Updated At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "customer_name",
+          "phone",
+          "service_address",
+          "service_type",
+          "appointment_time",
+          "estimated_duration_minutes",
+          "status",
+          "assigned_worker_id",
+          "status_updated_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OrderResponse",
+        "example": {
+          "appointment_time": "2026-04-07T09:30:00+08:00",
+          "created_at": "2026-04-06T10:00:00+00:00",
+          "customer_name": "Alice Zhang",
+          "estimated_duration_minutes": 120,
+          "order_id": "f5dd96bf-49cf-4fd5-816d-e13bc86068d2",
+          "phone": "+8613812345678",
+          "service_address": "Shanghai Pudong XX Road 100",
+          "service_type": "cleaning",
+          "status": "created",
+          "status_updated_at": "2026-04-06T10:00:00+00:00",
+          "updated_at": "2026-04-06T10:00:00+00:00"
+        }
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": [
+          "created",
+          "pending",
+          "accept",
+          "complete",
+          "paid"
+        ],
+        "title": "OrderStatus"
+      },
+      "ServiceType": {
+        "type": "string",
+        "enum": [
+          "cleaning",
+          "repair",
+          "install",
+          "other"
+        ],
+        "title": "ServiceType"
+      },
+      "UpdateOrderStatusRequest": {
+        "properties": {
+          "target_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accept",
+              "complete",
+              "paid"
+            ],
+            "title": "Target Status"
+          },
+          "assigned_worker_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned Worker Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_status"
+        ],
+        "title": "UpdateOrderStatusRequest"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -215,6 +699,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",

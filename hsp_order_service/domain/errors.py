@@ -8,3 +8,7 @@ class ValidationError(DomainError):
 
 class NotFoundError(DomainError):
     """Raised when entity does not exist."""
+
+
+class ConflictError(DomainError):
+    """Raised when resource state conflicts with required operation."""
