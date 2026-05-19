@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sequence Diagram - Order Lifecycle</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+  h1 { text-align: center; color: #1a365d; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #718096; margin-bottom: 24px; }
+  .diagram-container { background: white; border-radius: 8px; padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+  .diagram-container h3 { color: #2d3748; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+  .note { margin-top: 16px; padding: 12px; background: #fffff0; border-radius: 8px; border-left: 4px solid #ecc94b; }
+</style>
+</head>
+<body>
+<h1>Order Service — Core Sequence Diagrams</h1>
+<p class="subtitle">负责: 宇尘 (Yuchen) &nbsp;|&nbsp; gRPC Service: order.v1.OrderService</p>
+
+<div class="diagram-container">
+<h3>1. Create Order (US-2.1: 结构化订单创建)</h3>
+<pre class="mermaid">
+sequenceDiagram
+    actor CSR as 👤 Customer Service Staff
+    participant GW as 🌐 API Gateway<br/>(FastAPI)
+    participant OS as 📦 Order Service<br/>(gRPC :50051)
+    participant DB as 🗄️ MySQL<br/>(hsp_order.orders)
+
+    CSR->>GW: POST /api/orders/v1/orders<br/>{customer_name, phone, address, type, time, duration}
+    GW->>GW: JWT Auth + RBAC check<br/>(role=CUSTOMER_SERVICE/OWNER)
+    GW->>OS: gRPC CreateOrder<br/>(CreateOrderRequest)
+
+    OS->>OS: Validate required fields<br/>(customer_name, phone, service_address)
+
+    alt Missing required fields
+        OS-->>GW: INVALID_ARGUMENT error
+        GW-->>CSR: 400 Bad Request
+    else Validation OK
+        OS->>OS: Generate UUID order_id
+        OS->>OS: Set status = CREATED
+        OS->>OS: Set created_at / updated_at
+        OS->>DB: INSERT INTO orders VALUES (...)
+        DB-->>OS: Row inserted
+        OS-->>GW: CreateOrderResponse {order}
+        GW-->>CSR: 201 Created<br/>{order_id, status: "CREATED", ...}
+    end
+</pre>
+</div>
+
+<div class="diagram-container">
+<h3>2. Order Status Transition (US-2.2: 状态流转)</h3>
+<pre class="mermaid">
+sequenceDiagram
+    actor Staff as 👤 Staff / System
+    participant GW as 🌐 API Gateway
+    participant OS as 📦 Order Service<br/>(gRPC :50051)
+    participant DB as 🗄️ MySQL
+
+    Staff->>GW: PATCH /api/orders/v1/orders/{id}/status<br/>{target_status, assigned_worker_id}
+    GW->>GW: JWT Auth + RBAC check
+    GW->>OS: gRPC UpdateOrderStatus<br/>(order_id, target_status, assigned_worker_id)
+
+    OS->>DB: SELECT * FROM orders WHERE order_id = ?
+    DB-->>OS: Order record (current_status=CREATED)
+
+    alt Order not found
+        OS-->>GW: NOT_FOUND
+        GW-->>Staff: 404 Not Found
+    end
+
+    OS->>OS: Validate transition:<br/>CREATED -> PENDING ✓
+
+    alt Illegal transition
+        OS-->>GW: FAILED_PRECONDITION<br/>"cannot transition from X to Y"
+        GW-->>Staff: 409 Conflict
+    else Valid transition
+        OS->>OS: Update status, assigned_worker_id
+        OS->>OS: Set status_updated_at = now()
+        OS->>DB: UPDATE orders SET status=?, ... WHERE order_id=?
+        DB-->>OS: Row updated
+        OS-->>GW: UpdateOrderStatusResponse {order}
+        GW-->>Staff: 200 OK<br/>{status: "PENDING", ...}
+    end
+</pre>
+</div>
+
+<div class="diagram-container">
+<h3>3. Complete Order Lifecycle State Flow</h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant CSR as Customer Service
+    participant SYS as Order Service
+    participant WKR as Worker
+    participant PAY as Payment Service
+
+    Note over CSR,PAY: Full Order Lifecycle (CREATED → PAID)
+
+    CSR->>SYS: 1. CreateOrder → CREATED
+    SYS-->>CSR: order_id=ord-001, status=CREATED
+
+    CSR->>SYS: 2. UpdateOrderStatus → PENDING
+    SYS-->>CSR: status=PENDING (ready for dispatch)
+
+    CSR->>SYS: 3. Assign worker: UpdateOrderStatus → ACCEPT
+    SYS-->>CSR: status=ACCEPT, worker_id=w-001
+
+    WKR->>SYS: 4. Service complete: UpdateOrderStatus → COMPLETE
+    SYS-->>WKR: status=COMPLETE
+
+    Note over PAY: Payment callback received
+
+    CSR->>SYS: 5. Payment confirmed: UpdateOrderStatus → PAID
+    SYS-->>CSR: status=PAID (order closed)
+</pre>
+</div>
+
+<div class="note">
+  <strong>State Machine Validation Rules (order-service):</strong><br>
+  ✅ CREATED → PENDING &nbsp;|&nbsp; ✅ PENDING → ACCEPT &nbsp;|&nbsp; ✅ ACCEPT → COMPLETE &nbsp;|&nbsp; ✅ COMPLETE → PAID<br>
+  ❌ CREATED → PAID (非法) &nbsp;|&nbsp; ❌ CREATED → COMPLETE (非法) &nbsp;|&nbsp; ❌ PAID → * (终态，不可逆)
+</div>
+<script>mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });</script>
+</body>
+</html>

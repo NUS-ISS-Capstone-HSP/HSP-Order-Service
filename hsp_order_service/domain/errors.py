@@ -8,3 +8,7 @@ class ValidationError(DomainError):
 
 class NotFoundError(DomainError):
     """Raised when entity does not exist."""
+
+
+class TransitionError(DomainError):
+    """Raised when an illegal status transition is attempted."""

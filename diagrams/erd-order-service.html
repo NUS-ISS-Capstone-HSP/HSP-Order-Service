@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ER Diagram - Order Service</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+  h1 { text-align: center; color: #1a365d; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #718096; margin-bottom: 24px; }
+  .diagram-container { background: white; border-radius: 8px; padding: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .details { margin-top: 20px; }
+  .details table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .details th { background: #2b6cb0; color: white; padding: 12px 16px; text-align: left; font-weight: 600; }
+  .details td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; }
+  .details tr:last-child td { border-bottom: none; }
+  .details code { background: #edf2f7; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+  .status-flow { margin-top: 20px; padding: 16px; background: #fff5f5; border-radius: 8px; border-left: 4px solid #e53e3e; }
+  .status-flow h3 { margin-top: 0; color: #c53030; }
+</style>
+</head>
+<body>
+<h1>Order Service — ER Diagram</h1>
+<p class="subtitle">Database: hsp_order &nbsp;|&nbsp; Table: orders &nbsp;|&nbsp; 负责: 宇尘 (Yuchen)</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+erDiagram
+    orders {
+        string order_id PK "UUID, 系统自动生成"
+        string customer_name "客户姓名, NOT NULL"
+        string phone "联系电话, NOT NULL"
+        string service_address "服务地址, NOT NULL"
+        enum service_type "CLEANING | REPAIR | INSTALL | OTHER"
+        string appointment_time "预约时间 ISO8601"
+        int estimated_duration_minutes "预计服务时长(分钟)"
+        enum status "CREATED→PENDING→ACCEPT→COMPLETE→PAID"
+        string assigned_worker_id "指派的师傅ID, nullable"
+        datetime status_updated_at "状态变更时间"
+        datetime created_at "创建时间"
+        datetime updated_at "更新时间"
+    }
+</pre>
+</div>
+
+<div class="details">
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Constraint</th><th>Description</th></tr>
+    <tr><td><code>order_id</code></td><td>VARCHAR(36)</td><td>PRIMARY KEY</td><td>UUID v4, 唯一订单标识</td></tr>
+    <tr><td><code>customer_name</code></td><td>VARCHAR(100)</td><td>NOT NULL</td><td>客户姓名</td></tr>
+    <tr><td><code>phone</code></td><td>VARCHAR(20)</td><td>NOT NULL</td><td>联系电话</td></tr>
+    <tr><td><code>service_address</code></td><td>VARCHAR(500)</td><td>NOT NULL</td><td>服务地址</td></tr>
+    <tr><td><code>service_type</code></td><td>ENUM</td><td>NOT NULL</td><td>CLEANING / REPAIR / INSTALL / OTHER</td></tr>
+    <tr><td><code>appointment_time</code></td><td>VARCHAR(30)</td><td>NOT NULL</td><td>ISO 8601 格式预约时间</td></tr>
+    <tr><td><code>estimated_duration_minutes</code></td><td>INT</td><td>NOT NULL</td><td>预计服务时长 (分钟)</td></tr>
+    <tr><td><code>status</code></td><td>ENUM</td><td>NOT NULL, DEFAULT CREATED</td><td>订单状态 (见状态流转)</td></tr>
+    <tr><td><code>assigned_worker_id</code></td><td>VARCHAR(36)</td><td>NULLABLE</td><td>被指派的师傅ID</td></tr>
+    <tr><td><code>status_updated_at</code></td><td>DATETIME</td><td>NULLABLE</td><td>状态变更时间戳</td></tr>
+    <tr><td><code>created_at</code></td><td>DATETIME</td><td>DEFAULT NOW()</td><td>订单创建时间</td></tr>
+    <tr><td><code>updated_at</code></td><td>DATETIME</td><td>ON UPDATE NOW()</td><td>最后更新时间</td></tr>
+  </table>
+</div>
+
+<div class="status-flow">
+  <h3>Order Status State Machine</h3>
+  <pre class="mermaid">
+stateDiagram-v2
+    [*] --> CREATED: Customer/CSR creates order
+    CREATED --> PENDING: Order submitted for dispatch
+    PENDING --> ACCEPT: Worker accepts order
+    ACCEPT --> COMPLETE: Worker finishes service
+    COMPLETE --> PAID: Payment completed
+    PAID --> [*]
+  </pre>
+</div>
+<script>mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });</script>
+</body>
+</html>
