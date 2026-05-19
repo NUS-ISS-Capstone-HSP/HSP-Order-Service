@@ -30,7 +30,7 @@ class OrderORM(Base):
     appointment_time: Mapped[str] = mapped_column(String(30), nullable=False)
     estimated_duration_minutes: Mapped[int] = mapped_column(Integer(), nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="CREATED")
-    assigned_worker_id: Mapped[str] = mapped_column(String(36), nullable=True)
+    assigned_worker_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     status_updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

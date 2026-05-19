@@ -89,6 +89,7 @@ class OrderGrpcService(order_pb2_grpc.OrderServiceServicer):
         target = order_status_from_proto(request.target_status)
         if target is None:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "invalid target status")
+            return order_pb2.UpdateOrderStatusResponse()
         try:
             order = await self._order_service.update_order_status(
                 order_id=request.order_id,

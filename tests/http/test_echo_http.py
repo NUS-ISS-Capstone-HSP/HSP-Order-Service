@@ -1,13 +1,18 @@
 from fastapi.testclient import TestClient
 
-from hsp_order_service.repository.in_memory import InMemoryEchoRepository
+from hsp_order_service.repository.in_memory import (
+    InMemoryEchoRepository,
+    InMemoryOrderRepository,
+)
 from hsp_order_service.service.echo_service import EchoService
+from hsp_order_service.service.order_service import OrderService
 from hsp_order_service.transport.http.app import create_http_app
 
 
 def build_client() -> TestClient:
-    service = EchoService(InMemoryEchoRepository())
-    app = create_http_app(service)
+    echo_service = EchoService(InMemoryEchoRepository())
+    order_service = OrderService(InMemoryOrderRepository())
+    app = create_http_app(echo_service, order_service)
     return TestClient(app)
 
 

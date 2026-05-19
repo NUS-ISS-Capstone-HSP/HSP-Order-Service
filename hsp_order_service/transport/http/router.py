@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Path, Query
+from typing import Annotated
+
+from fastapi import APIRouter, Body, Path, Query
 
 from hsp_order_service.domain.models import OrderStatus, ServiceType, SourceType
 from hsp_order_service.service.echo_service import EchoService
@@ -74,8 +76,8 @@ def build_router(echo_service: EchoService, order_service: OrderService) -> APIR
 
     @router.patch("/orders/{order_id}/status", response_model=OrderResponse)
     async def update_order_status(
-        order_id: str = Path(...),
-        payload: UpdateOrderStatusRequest = ...,
+        order_id: Annotated[str, Path()],
+        payload: Annotated[UpdateOrderStatusRequest, Body()],
     ) -> OrderResponse:
         order = await order_service.update_order_status(
             order_id=order_id,
