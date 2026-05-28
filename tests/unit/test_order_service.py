@@ -14,25 +14,39 @@ def build_service() -> OrderService:
 async def test_create_order_success() -> None:
     svc = build_service()
     order = await svc.create_order(
-        customer_name="张三",
-        phone="13800000000",
-        service_address="上海市",
+        customer_name="  Zhang San  ",
+        phone=" 13800000000 ",
+        service_address=" Shanghai ",
         service_type=ServiceType.CLEANING,
         appointment_time="2026-04-08T10:00:00+08:00",
         estimated_duration_minutes=120,
     )
 
     assert order.order_id
-    assert order.customer_name == "张三"
+    assert order.customer_name == "Zhang San"
+    assert order.phone == "13800000000"
+    assert order.service_address == "Shanghai"
     assert order.service_type == ServiceType.CLEANING
     assert order.status == OrderStatus.CREATED
 
 
 @pytest.mark.asyncio
-async def test_create_order_empty_name_raises() -> None:
+@pytest.mark.parametrize(
+    ("customer_name", "phone", "service_address"),
+    [
+        ("  ", "138", "addr"),
+        ("name", "  ", "addr"),
+        ("name", "138", "  "),
+    ],
+)
+async def test_create_order_required_text_fields_raise(
+    customer_name: str,
+    phone: str,
+    service_address: str,
+) -> None:
     svc = build_service()
     with pytest.raises(ValidationError):
-        await svc.create_order("  ", "138", "addr", ServiceType.OTHER, "time", 60)
+        await svc.create_order(customer_name, phone, service_address, ServiceType.OTHER, "time", 60)
 
 
 @pytest.mark.asyncio
@@ -55,6 +69,13 @@ async def test_get_order_not_found_raises() -> None:
     svc = build_service()
     with pytest.raises(NotFoundError):
         await svc.get_order("nonexistent")
+
+
+@pytest.mark.asyncio
+async def test_get_order_empty_id_raises() -> None:
+    svc = build_service()
+    with pytest.raises(ValidationError):
+        await svc.get_order("  ")
 
 
 @pytest.mark.asyncio
@@ -85,6 +106,18 @@ async def test_list_orders_pagination() -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_orders_normalizes_invalid_pagination() -> None:
+    svc = build_service()
+    await svc.create_order("a", "1", "a", ServiceType.OTHER, "t", 30)
+    await svc.create_order("b", "2", "b", ServiceType.OTHER, "t", 30)
+
+    items, total = await svc.list_orders(page=0, page_size=0)
+
+    assert total == 2
+    assert len(items) == 2
+
+
+@pytest.mark.asyncio
 async def test_update_order_status_success() -> None:
     svc = build_service()
     created = await svc.create_order("name", "138", "addr", ServiceType.OTHER, "t", 30)
@@ -100,9 +133,42 @@ async def test_update_order_status_success() -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_order_status_full_lifecycle_success() -> None:
+    svc = build_service()
+    created = await svc.create_order("name", "138", "addr", ServiceType.OTHER, "t", 30)
+
+    pending = await svc.update_order_status(created.order_id, OrderStatus.PENDING)
+    pending_status_updated_at = pending.status_updated_at
+    accepted = await svc.update_order_status(created.order_id, OrderStatus.ACCEPT, "w1")
+    accepted_worker_id = accepted.assigned_worker_id
+    completed = await svc.update_order_status(created.order_id, OrderStatus.COMPLETE)
+    completed_status = completed.status
+    paid = await svc.update_order_status(created.order_id, OrderStatus.PAID)
+
+    assert pending_status_updated_at is not None
+    assert accepted_worker_id == "w1"
+    assert completed_status == OrderStatus.COMPLETE
+    assert paid.status == OrderStatus.PAID
+
+
+@pytest.mark.asyncio
 async def test_update_order_status_invalid_transition_raises() -> None:
     svc = build_service()
     created = await svc.create_order("name", "138", "addr", ServiceType.OTHER, "t", 30)
 
     with pytest.raises(TransitionError):
         await svc.update_order_status(created.order_id, OrderStatus.COMPLETE)
+
+
+@pytest.mark.asyncio
+async def test_update_order_status_empty_id_raises() -> None:
+    svc = build_service()
+    with pytest.raises(ValidationError):
+        await svc.update_order_status("  ", OrderStatus.PENDING)
+
+
+@pytest.mark.asyncio
+async def test_update_order_status_missing_order_raises() -> None:
+    svc = build_service()
+    with pytest.raises(NotFoundError):
+        await svc.update_order_status("missing", OrderStatus.PENDING)

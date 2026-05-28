@@ -5,8 +5,13 @@ import pytest
 from hsp_order_service.bootstrap.container import build_container
 from hsp_order_service.config import get_settings
 from hsp_order_service.domain.models import SourceType
-from hsp_order_service.repository.in_memory import InMemoryEchoRepository
-from hsp_order_service.repository.mysql import SQLAlchemyEchoRepository
+from hsp_order_service.repository.in_memory import InMemoryEchoRepository, InMemoryOrderRepository
+from hsp_order_service.repository.mysql import SQLAlchemyEchoRepository, SQLAlchemyOrderRepository
+
+
+def build_fake_grpc_server(*args: object) -> object:
+    del args
+    return object()
 
 
 @pytest.mark.asyncio
@@ -14,11 +19,16 @@ async def test_build_container_with_mock_repository(monkeypatch: pytest.MonkeyPa
     monkeypatch.setenv("HSP_ORDER_SERVICE_USE_MOCK_REPOSITORY", "true")
     monkeypatch.setenv("HSP_ORDER_SERVICE_MYSQL_DSN", "mysql+aiomysql://not-used")
     monkeypatch.setenv("HSP_ORDER_SERVICE_GRPC_PORT", "0")
+    monkeypatch.setattr(
+        "hsp_order_service.bootstrap.container.build_grpc_server",
+        build_fake_grpc_server,
+    )
     get_settings.cache_clear()
 
     container = await build_container()
 
     assert isinstance(container.echo_repository, InMemoryEchoRepository)
+    assert isinstance(container.order_repository, InMemoryOrderRepository)
     assert container.engine is None
     assert container.session_factory is None
 
@@ -34,11 +44,16 @@ async def test_build_container_with_sqlalchemy_repository(
     monkeypatch.setenv("HSP_ORDER_SERVICE_USE_MOCK_REPOSITORY", "false")
     monkeypatch.setenv("HSP_ORDER_SERVICE_MYSQL_DSN", f"sqlite+aiosqlite:///{db_file}")
     monkeypatch.setenv("HSP_ORDER_SERVICE_GRPC_PORT", "0")
+    monkeypatch.setattr(
+        "hsp_order_service.bootstrap.container.build_grpc_server",
+        build_fake_grpc_server,
+    )
     get_settings.cache_clear()
 
     container = await build_container()
 
     assert isinstance(container.echo_repository, SQLAlchemyEchoRepository)
+    assert isinstance(container.order_repository, SQLAlchemyOrderRepository)
     assert container.engine is not None
     assert container.session_factory is not None
 
