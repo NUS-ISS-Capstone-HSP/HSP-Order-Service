@@ -1,3 +1,4 @@
 Dockerfile
 ci.yaml
+.github/workflows/ci.yml
 diagrams/
