@@ -8,9 +8,13 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+RUN groupadd --system app && useradd --system --gid app --create-home app
+
+COPY --chown=app:app . .
 
 EXPOSE 8080
 EXPOSE 50051
+
+USER app
 
 CMD ["python", "-m", "hsp_order_service.main"]
